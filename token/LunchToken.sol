@@ -36,6 +36,9 @@ contract LunchToken is Context, IERC20, IERC20Metadata {
     mapping(address => uint256) private _balances;
     mapping(address => mapping(address => uint256)) private _allowances;
 
+    address[] private participants;
+    string[] private participantNames;
+
     uint256 private _totalSupply;
     string private _name;
     string private _symbol;
@@ -371,5 +374,38 @@ contract LunchToken is Context, IERC20, IERC20Metadata {
 
     function destroyContract(address payable adr) public onlyOwner {
         selfdestruct(adr);
+    }
+
+    function registerParticipant(address address_, string memory name_) public onlyOwner {
+        participants.push(address_);
+        participantNames.push(name_);
+    }
+
+    function isParticipant(address address_) public view returns (bool, uint256) {
+        for (uint256 i = 0; i < participants.length; i += 1) {
+            if (address_ == participants[i]) {
+                return (true, i);
+            }
+        }
+        return (false, 0);
+    }
+
+    function getParticipantName(address address_) public view onlyOwner returns (string memory) {
+        (bool _isParticipant, uint256 i) = isParticipant(address_);
+        return _isParticipant ? participantNames[i] : "This address is not participating in the voting.";
+    }
+
+    function removeParticipant(address address_) public onlyOwner {
+        (bool _isParticipant, uint256 i) = isParticipant(address_);
+        if (_isParticipant) {
+            participants[i] = participants[participants.length - 1];
+            participants.pop();
+            participantNames[i] = participantNames[participantNames.length - 1];
+            participantNames.pop();
+        }
+    }
+
+    function getAllParticipantNames() public view returns (string[] memory) {
+        return participantNames;
     }
 }
