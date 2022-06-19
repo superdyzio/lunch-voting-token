@@ -1,0 +1,28 @@
+{
+  "name": "lunch-voting-token",
+  "version": "0.0.1",
+  "description": "Utility token for lunch voting",
+  "main": "backend/server.js",
+  "scripts": {
+    "start": "node backend/server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/superdyzio/lunch-voting-token.git"
+  },
+  "author": "superdyzio",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/superdyzio/lunch-voting-token/issues"
+  },
+  "homepage": "https://github.com/superdyzio/lunch-voting-token#readme",
+  "devDependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.18.1",
+    "http": "^0.0.1-security",
+    "web3": "^1.7.3"
+  },
+  "dependencies": {
+    "dotenv": "^16.0.1"
+  }
+}
