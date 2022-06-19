@@ -36,9 +36,6 @@ contract LunchToken is Context, IERC20, IERC20Metadata {
     mapping(address => uint256) private _balances;
     mapping(address => mapping(address => uint256)) private _allowances;
 
-    address[] private participants;
-    string[] private participantNames;
-
     uint256 private _totalSupply;
     string private _name;
     string private _symbol;
@@ -48,6 +45,31 @@ contract LunchToken is Context, IERC20, IERC20Metadata {
         require(msg.sender == _owner, "Only the contract owner can invoke this method.");
         _;
     }
+
+    address[] private participants;
+    string[] private participantNames;
+
+    modifier votingAllowed {
+        require(voteOpen, "This operation is allowed only when vote is open.");
+        _;
+    }
+
+    modifier votingClosed {
+        require(!voteOpen, "This operation is allowed only when vote is closed.");
+        _;
+    }
+
+    modifier onlyParticipant {
+        (bool _isParticipant, uint256 i) = isParticipant(_msgSender());
+        require(_isParticipant, "This operation can be performed only by a participant.");
+        _;
+    }
+
+    bool voteOpen = false;
+    string[] optionNames;
+    uint256[] optionVotes;
+    mapping(uint256 => address[]) optionVoters;
+    string lastWinner;
 
     /**
      * @dev Sets the values for {name} and {symbol}.
@@ -407,5 +429,84 @@ contract LunchToken is Context, IERC20, IERC20Metadata {
 
     function getAllParticipantNames() public view returns (string[] memory) {
         return participantNames;
+    }
+
+    function startVoting(uint256 allocation) public onlyOwner votingClosed {
+        voteOpen = true;
+        for (uint256 i = 0; i < participants.length; i += 1) {
+            _mint(participants[i], allocation);
+        }
+    }
+
+    function endVoting() public onlyOwner votingAllowed {
+        voteOpen = false;
+        (uint256 winnerPosition, uint256 reward) = findWinner();
+        distributeRewardsToVoters(winnerPosition, reward);
+        resetPassiveParticipantsBalance();
+        lastWinner = optionNames[winnerPosition];
+    }
+
+    function getLastWinner() public view votingClosed returns (string memory) {
+        return lastWinner;
+    }
+
+    function findWinner() internal view returns (uint256 winnerPosition, uint256 reward) {
+        uint256 maxVotes = 0;
+        winnerPosition = 0;
+        reward = 0;
+        for (uint256 i = 0; i < optionVotes.length; i += 1) {
+            if (optionVotes[i] > maxVotes) {
+                maxVotes = optionVotes[i];
+                winnerPosition = i;
+            }
+            reward += optionVotes[i];
+        }
+    }
+
+    function distributeRewardsToVoters(uint256 position, uint256 reward) internal {
+        address[] memory winningVoters = optionVoters[position];
+        uint256 individualReward = reward / winningVoters.length;
+        for (uint256 i = 0; i < participants.length; i += 1) {
+            if (hasVoted(participants[i])) {
+                transferFrom(participants[i], _owner, _allowances[participants[i]][_owner]);
+            }
+        }
+        for (uint256 i = 0; i < winningVoters.length; i += 1) {
+            transfer(winningVoters[i], individualReward);
+        }
+    }
+
+    function resetPassiveParticipantsBalance() internal {
+        for (uint256 i = 0; i < participants.length; i += 1) {
+            if (!hasVoted(participants[i])) {
+                _burn(participants[i], _balances[participants[i]]);
+            }
+        }
+    }
+
+    function hasVoted(address address_) internal view returns (bool) {
+        for (uint256 i = 0; i < optionNames.length; i += 1) {
+            for (uint256 j = 0; j < optionVoters[i].length; j += 1) {
+                if (optionVoters[i][j] == address_) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    function addOption(string memory name_) public votingAllowed onlyParticipant {
+        optionNames.push(name_);
+        optionVotes.push(0);
+    }
+
+    function getOptions() public view onlyParticipant returns (string[] memory) {
+        return optionNames;
+    }
+
+    function vote(uint256 position, uint256 votes) public votingAllowed onlyParticipant {
+        approve(_owner, votes);
+        optionVotes[position] += votes;
+        optionVoters[position].push(_msgSender());
     }
 }
