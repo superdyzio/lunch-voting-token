@@ -11,6 +11,10 @@ const webServer = http.createServer((req, res) => {
     } else if (req.url.includes('styles.css')) {
         res.writeHead(200, {'content-type': 'text/css'})
         fs.createReadStream('frontend/styles.css').pipe(res);
+    } else if (req.url.includes('assets/')) {
+        const assetName = req.url.split('/').pop();
+        res.writeHead(200, {'content-type': 'image/png'})
+        fs.createReadStream(`frontend/assets/${assetName}`).pipe(res);
     } else {
         res.writeHead(200, {'content-type': 'text/html'})
         fs.createReadStream('frontend/index.html').pipe(res);
@@ -513,6 +517,29 @@ web3.eth.accounts.wallet.add(process.env.WALLET_KEY);
 app.get('/get-deployer-address', async (req, res) => {
     const address = await contract.methods.owner().call();
     res.send(address);
+});
+
+app.get('/get-my-balance', async (req, res) => {
+    const wei = await web3.eth.getBalance(process.env.WALLET_ADDRESS);
+    const ethBalance = web3.utils.fromWei(wei, 'ether')
+    const balance = await contract.methods.balanceOf(process.env.WALLET_ADDRESS).call();
+    res.json({ethBalance, balance});
+});
+
+app.get('/get-last-winner', async (req, res) => {
+    const name = await contract.methods.getLastWinner().call();
+    res.send(name);
+});
+
+app.get('/get-all-participant-names', async (req, res) => {
+    const names = await contract.methods.getAllParticipantNames().call();
+    res.json(names);
+});
+
+app.post('/add-participant', async (req, res) => {
+    const owner = await contract.methods.owner().call();
+    await contract.methods.registerParticipant(req.body.address, req.body.name).send({ from: owner, gasLimit: 2000000 });
+    res.send(`Wallet ${req.body.address} registered as ${req.body.name}`);
 });
 
 
