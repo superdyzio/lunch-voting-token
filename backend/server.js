@@ -536,10 +536,40 @@ app.get('/get-all-participant-names', async (req, res) => {
     res.json(names);
 });
 
+app.get('/get-options', async (req, res) => {
+    const owner = await contract.methods.owner().call();
+    const options = await contract.methods.getOptions().call({ from: owner });
+    res.json(options);
+});
+
 app.post('/add-participant', async (req, res) => {
     const owner = await contract.methods.owner().call();
     await contract.methods.registerParticipant(req.body.address, req.body.name).send({ from: owner, gasLimit: 2000000 });
     res.send(`Wallet ${req.body.address} registered as ${req.body.name}`);
+});
+
+app.post('/add-option', async (req, res) => {
+    const owner = await contract.methods.owner().call();
+    await contract.methods.addOption(req.body.name).send({ from: owner, gasLimit: 2000000 });
+    res.send(`Option ${req.body.name} added`);
+});
+
+app.post('/start-voting', async (req, res) => {
+    const owner = await contract.methods.owner().call();
+    await contract.methods.startVoting(req.body.amount).send({ from: owner, gasLimit: 2000000 });
+    res.send('Voting started');
+});
+
+app.post('/end-voting', async (req, res) => {
+    const owner = await contract.methods.owner().call();
+    await contract.methods.endVoting().send({ from: owner, gasLimit: 2000000 });
+    res.send('Vote ended');
+});
+
+app.post('/vote', async (req, res) => {
+    const owner = await contract.methods.owner().call();
+    await contract.methods.vote(req.body.position, req.body.votes).send({ from: owner, gasLimit: 2000000 });
+    res.send(`${req.body.votes} added to ${req.body.position}`);
 });
 
 

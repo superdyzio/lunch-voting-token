@@ -11,6 +11,8 @@
 <header>
     <h1>Lunch Voting Token</h1>
     <div class="actions">
+        <button id="startVoting" onclick="startVoting()">Start voting</button>
+        <button id="endVoting" onclick="endVoting()">End voting</button>
         <button onclick="refreshData()">Refresh data</button>
         <button disabled>Logged in</button>
     </div>
@@ -23,21 +25,18 @@
             No participants.
         </div>
         <form id="newParticipantForm" onsubmit="addParticipant()">
-            <input id="newParticipantAddress" type="text" placeholder="Wallet address" />
-            <input id="newParticipantName" type="text" placeholder="Participant name" />
+            <input id="newParticipantAddress" type="text" placeholder="Wallet address"/>
+            <input id="newParticipantName" type="text" placeholder="Participant name"/>
             <button type="submit">Add</button>
         </form>
     </section>
     <section class="options">
         <h3>Options:</h3>
-        <div id="optionList">
-            <ul>
-                <li>Pizza</li>
-                <li>Kebab</li>
-                <li>Ragu</li>
-                <li>Qp</li>
-            </ul>
-        </div>
+        <ul id="optionList"></ul>
+        <form id="newOptionForm" onsubmit="addOption()">
+            <input id="newOptionName" type="text" placeholder="Option name"/>
+            <button type="submit">Add</button>
+        </form>
     </section>
     <section class="summary">
         <h3 id="myBalance">My balance: unknown</h3>
@@ -47,10 +46,10 @@
 
 <footer>
     <a href="https://linkedin.com/in/perdekdawid" target="_blank">
-        <img src="assets/li-logo.png" alt="LinkedIn profile link" />
+        <img src="assets/li-logo.png" alt="LinkedIn profile link"/>
     </a>
     <a href="https://github.com/superdyzio" target="_blank">
-        <img src="assets/gh-logo.png" alt="GitHub profile link" />
+        <img src="assets/gh-logo.png" alt="GitHub profile link"/>
     </a>
 </footer>
 

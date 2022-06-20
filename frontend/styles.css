@@ -64,6 +64,17 @@ section.content section {
     gap: 50px;
 }
 
-#participantList, #newParticipantForm {
+#participantList, #newParticipantForm, #newOptionForm {
     margin: auto 0;
+}
+
+#optionList {
+    list-style: none;
+}
+
+#optionList li {
+    display: flex;
+    flex-direction: row;
+    gap: 10px;
+    margin-bottom: 10px;
 }
