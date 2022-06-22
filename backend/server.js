@@ -514,6 +514,10 @@ const contract = new web3.eth.Contract(contractABI, process.env.CONTRACT_ADDRESS
 
 web3.eth.accounts.wallet.add(process.env.WALLET_KEY);
 
+app.get('/get-contract-data', async (req, res) => {
+    res.json({contractABI, contractAddress: process.env.CONTRACT_ADDRESS});
+});
+
 app.get('/get-deployer-address', async (req, res) => {
     const address = await contract.methods.owner().call();
     res.send(address);

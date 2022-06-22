@@ -2,11 +2,12 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <script src="https://cdn.ethers.io/lib/ethers-5.6.umd.min.js" type="text/javascript"></script>
     <script src="frontend/main.js"></script>
     <link rel="stylesheet" href="frontend/styles.css">
     <title>Lunch voting token</title>
 </head>
-<body onload="refreshData()">
+<body onload="init()">
 
 <header>
     <h1>Lunch Voting Token</h1>
@@ -14,7 +15,7 @@
         <button id="startVoting" onclick="startVoting()">Start voting</button>
         <button id="endVoting" onclick="endVoting()">End voting</button>
         <button onclick="refreshData()">Refresh data</button>
-        <button disabled>Logged in</button>
+        <button id="connectMetamaskButton" onclick="connect()">Connect metamask</button>
     </div>
 </header>
 
