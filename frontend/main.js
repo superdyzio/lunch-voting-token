@@ -99,7 +99,7 @@ async function addParticipant() {
     }
 
     await contract.registerParticipant(address, name);
-    console.log(`Wallet ${req.body.address} registered as ${req.body.name}`);
+    console.log(`Wallet ${address} registered as ${name}`);
     document.getElementById('newParticipantForm').reset();
     await getParticipants();
 }
@@ -113,7 +113,7 @@ async function addOption() {
     }
 
     await contract.addOption(name);
-    console.log(`Option ${req.body.name} added`);
+    console.log(`Option ${name} added`);
     document.getElementById('newOptionForm').reset();
     await getOptions();
 }
