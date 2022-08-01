@@ -7,6 +7,18 @@ import "./extensions/IERC20Metadata.sol";
 import "./interfaces/IERC20.sol";
 import "./utils/Context.sol";
 
+error LunchToken__OnlyTheContractOwnerCanInvokeThisMethod();
+error LunchToken__ERC20decreasedAllowanceBelowZero();
+error LunchToken__ERC20transferFromTheZeroAddress();
+error LunchToken__ERC20transferToTheZeroAddress();
+error LunchToken__ERC20transferAmountExceedsBalance();
+error LunchToken__ERC20mintToTheZeroAddress();
+error LunchToken__ERC20burnFromTheZeroAddress();
+error LunchToken__ERC20burnAmountExceedsBalance();
+error LunchToken__ERC20approveFromTheZeroAddress();
+error LunchToken__ERC20approveToTheZeroAddress();
+error LunchToken__ERC20insufficientAllowance();
+
 /**
  * @dev Implementation of the {IERC20} interface.
  *
@@ -41,27 +53,29 @@ contract LunchToken is Context, IERC20, IERC20Metadata {
     string private _symbol;
     address private _owner;
 
-    modifier onlyOwner {
-        require(msg.sender == _owner, "Only the contract owner can invoke this method.");
+    modifier onlyOwner() {
+        if (msg.sender != _owner) {
+            revert LunchToken__OnlyTheContractOwnerCanInvokeThisMethod();
+        }
         _;
     }
 
     address[] private participants;
     string[] private participantNames;
 
-    modifier votingAllowed {
-        require(voteOpen, "This operation is allowed only when vote is open.");
+    modifier votingAllowed() {
+        require(voteOpen, "Vote not open");
         _;
     }
 
-    modifier votingClosed {
-        require(!voteOpen, "This operation is allowed only when vote is closed.");
+    modifier votingClosed() {
+        require(!voteOpen, "Vote closed");
         _;
     }
 
-    modifier onlyParticipant {
+    modifier onlyParticipant() {
         (bool _isParticipant, uint256 i) = isParticipant(_msgSender());
-        require(_isParticipant, "This operation can be performed only by a participant.");
+        require(_isParticipant, "Only Participant allowed");
         _;
     }
 
@@ -135,7 +149,13 @@ contract LunchToken is Context, IERC20, IERC20Metadata {
     /**
      * @dev See {IERC20-balanceOf}.
      */
-    function balanceOf(address account) public view virtual override returns (uint256) {
+    function balanceOf(address account)
+        public
+        view
+        virtual
+        override
+        returns (uint256)
+    {
         return _balances[account];
     }
 
@@ -147,7 +167,12 @@ contract LunchToken is Context, IERC20, IERC20Metadata {
      * - `to` cannot be the zero address.
      * - the caller must have a balance of at least `amount`.
      */
-    function transfer(address to, uint256 amount) public virtual override returns (bool) {
+    function transfer(address to, uint256 amount)
+        public
+        virtual
+        override
+        returns (bool)
+    {
         address sender = _msgSender();
         _transfer(sender, to, amount);
         return true;
@@ -156,7 +181,13 @@ contract LunchToken is Context, IERC20, IERC20Metadata {
     /**
      * @dev See {IERC20-allowance}.
      */
-    function allowance(address owner_, address spender) public view virtual override returns (uint256) {
+    function allowance(address owner_, address spender)
+        public
+        view
+        virtual
+        override
+        returns (uint256)
+    {
         return _allowances[owner_][spender];
     }
 
@@ -170,7 +201,12 @@ contract LunchToken is Context, IERC20, IERC20Metadata {
      *
      * - `spender` cannot be the zero address.
      */
-    function approve(address spender, uint256 amount) public virtual override returns (bool) {
+    function approve(address spender, uint256 amount)
+        public
+        virtual
+        override
+        returns (bool)
+    {
         address sender = _msgSender();
         _approve(sender, spender, amount);
         return true;
@@ -192,7 +228,11 @@ contract LunchToken is Context, IERC20, IERC20Metadata {
      * - the caller must have allowance for ``from``'s tokens of at least
      * `amount`.
      */
-    function transferFrom(address from, address to, uint256 amount) public virtual override returns (bool) {
+    function transferFrom(
+        address from,
+        address to,
+        uint256 amount
+    ) public virtual override returns (bool) {
         address spender = _msgSender();
         _spendAllowance(from, spender, amount);
         _transfer(from, to, amount);
@@ -211,7 +251,11 @@ contract LunchToken is Context, IERC20, IERC20Metadata {
      *
      * - `spender` cannot be the zero address.
      */
-    function increaseAllowance(address spender, uint256 addedValue) public virtual returns (bool) {
+    function increaseAllowance(address spender, uint256 addedValue)
+        public
+        virtual
+        returns (bool)
+    {
         address sender = _msgSender();
         _approve(sender, spender, allowance(sender, spender) + addedValue);
         return true;
@@ -231,13 +275,19 @@ contract LunchToken is Context, IERC20, IERC20Metadata {
      * - `spender` must have allowance for the caller of at least
      * `subtractedValue`.
      */
-    function decreaseAllowance(address spender, uint256 subtractedValue) public virtual returns (bool) {
+    function decreaseAllowance(address spender, uint256 subtractedValue)
+        public
+        virtual
+        returns (bool)
+    {
         address sender = _msgSender();
         uint256 currentAllowance = allowance(sender, spender);
-        require(currentAllowance >= subtractedValue, "ERC20: decreased allowance below zero");
-    unchecked {
-        _approve(sender, spender, currentAllowance - subtractedValue);
-    }
+        if (currentAllowance < subtractedValue) {
+            revert LunchToken__ERC20decreasedAllowanceBelowZero();
+        }
+        unchecked {
+            _approve(sender, spender, currentAllowance - subtractedValue);
+        }
 
         return true;
     }
@@ -256,17 +306,28 @@ contract LunchToken is Context, IERC20, IERC20Metadata {
      * - `to` cannot be the zero address.
      * - `from` must have a balance of at least `amount`.
      */
-    function _transfer(address from, address to, uint256 amount) internal virtual {
-        require(from != address(0), "ERC20: transfer from the zero address");
-        require(to != address(0), "ERC20: transfer to the zero address");
+
+    function _transfer(
+        address from,
+        address to,
+        uint256 amount
+    ) internal virtual {
+        if (from == address(0)) {
+            revert LunchToken__ERC20transferFromTheZeroAddress();
+        }
+        if (to == address(0)) {
+            revert LunchToken__ERC20transferToTheZeroAddress();
+        }
 
         _beforeTokenTransfer(from, to, amount);
 
         uint256 fromBalance = _balances[from];
-        require(fromBalance >= amount, "ERC20: transfer amount exceeds balance");
-    unchecked {
-        _balances[from] = fromBalance - amount;
-    }
+        if (fromBalance < amount) {
+            revert LunchToken__ERC20transferAmountExceedsBalance();
+        }
+        unchecked {
+            _balances[from] = fromBalance - amount;
+        }
         _balances[to] += amount;
 
         emit Transfer(from, to, amount);
@@ -284,7 +345,9 @@ contract LunchToken is Context, IERC20, IERC20Metadata {
      * - `account` cannot be the zero address.
      */
     function _mint(address account, uint256 amount) internal virtual {
-        require(account != address(0), "ERC20: mint to the zero address");
+        if (account == address(0)) {
+            revert LunchToken__ERC20mintToTheZeroAddress();
+        }
 
         _beforeTokenTransfer(address(0), account, amount);
 
@@ -306,16 +369,21 @@ contract LunchToken is Context, IERC20, IERC20Metadata {
      * - `account` cannot be the zero address.
      * - `account` must have at least `amount` tokens.
      */
+
     function _burn(address account, uint256 amount) internal virtual {
-        require(account != address(0), "ERC20: burn from the zero address");
+        if (account == address(0)) {
+            revert LunchToken__ERC20burnFromTheZeroAddress();
+        }
 
         _beforeTokenTransfer(account, address(0), amount);
 
         uint256 accountBalance = _balances[account];
-        require(accountBalance >= amount, "ERC20: burn amount exceeds balance");
-    unchecked {
-        _balances[account] = accountBalance - amount;
-    }
+        if (accountBalance < amount) {
+            revert LunchToken__ERC20burnAmountExceedsBalance();
+        }
+        unchecked {
+            _balances[account] = accountBalance - amount;
+        }
         _totalSupply -= amount;
 
         emit Transfer(account, address(0), amount);
@@ -336,9 +404,18 @@ contract LunchToken is Context, IERC20, IERC20Metadata {
      * - `owner` cannot be the zero address.
      * - `spender` cannot be the zero address.
      */
-    function _approve(address owner_, address spender, uint256 amount) internal virtual {
-        require(owner_ != address(0), "ERC20: approve from the zero address");
-        require(spender != address(0), "ERC20: approve to the zero address");
+
+    function _approve(
+        address owner_,
+        address spender,
+        uint256 amount
+    ) internal virtual {
+        if (owner_ == address(0)) {
+            revert LunchToken__ERC20approveFromTheZeroAddress();
+        }
+        if (spender == address(0)) {
+            revert LunchToken__ERC20approveToTheZeroAddress();
+        }
 
         _allowances[owner_][spender] = amount;
         emit Approval(owner_, spender, amount);
@@ -352,13 +429,19 @@ contract LunchToken is Context, IERC20, IERC20Metadata {
      *
      * Might emit an {Approval} event.
      */
-    function _spendAllowance(address owner_, address spender, uint256 amount) internal virtual {
+    function _spendAllowance(
+        address owner_,
+        address spender,
+        uint256 amount
+    ) internal virtual {
         uint256 currentAllowance = allowance(owner_, spender);
         if (currentAllowance != type(uint256).max) {
-            require(currentAllowance >= amount, "ERC20: insufficient allowance");
-        unchecked {
-            _approve(owner_, spender, currentAllowance - amount);
-        }
+            if (currentAllowance < amount) {
+                revert LunchToken__ERC20insufficientAllowance();
+            }
+            unchecked {
+                _approve(owner_, spender, currentAllowance - amount);
+            }
         }
     }
 
@@ -376,7 +459,11 @@ contract LunchToken is Context, IERC20, IERC20Metadata {
      *
      * To learn more about hooks, head to xref:ROOT:extending-contracts.adoc#using-hooks[Using Hooks].
      */
-    function _beforeTokenTransfer(address from, address to, uint256 amount) internal virtual {}
+    function _beforeTokenTransfer(
+        address from,
+        address to,
+        uint256 amount
+    ) internal virtual {}
 
     /**
      * @dev Hook that is called after any transfer of tokens. This includes
@@ -392,18 +479,29 @@ contract LunchToken is Context, IERC20, IERC20Metadata {
      *
      * To learn more about hooks, head to xref:ROOT:extending-contracts.adoc#using-hooks[Using Hooks].
      */
-    function _afterTokenTransfer(address from, address to, uint256 amount) internal virtual {}
+    function _afterTokenTransfer(
+        address from,
+        address to,
+        uint256 amount
+    ) internal virtual {}
 
     function destroyContract(address payable adr) public onlyOwner {
         selfdestruct(adr);
     }
 
-    function registerParticipant(address address_, string memory name_) public onlyOwner {
+    function registerParticipant(address address_, string memory name_)
+        public
+        onlyOwner
+    {
         participants.push(address_);
         participantNames.push(name_);
     }
 
-    function isParticipant(address address_) public view returns (bool, uint256) {
+    function isParticipant(address address_)
+        public
+        view
+        returns (bool, uint256)
+    {
         for (uint256 i = 0; i < participants.length; i += 1) {
             if (address_ == participants[i]) {
                 return (true, i);
@@ -412,9 +510,17 @@ contract LunchToken is Context, IERC20, IERC20Metadata {
         return (false, 0);
     }
 
-    function getParticipantName(address address_) public view onlyOwner returns (string memory) {
+    function getParticipantName(address address_)
+        public
+        view
+        onlyOwner
+        returns (string memory)
+    {
         (bool _isParticipant, uint256 i) = isParticipant(address_);
-        return _isParticipant ? participantNames[i] : "This address is not participating in the voting.";
+        return
+            _isParticipant
+                ? participantNames[i]
+                : "This address is not participating in the voting.";
     }
 
     function removeParticipant(address address_) public onlyOwner {
@@ -450,7 +556,11 @@ contract LunchToken is Context, IERC20, IERC20Metadata {
         return lastWinner;
     }
 
-    function findWinner() internal view returns (uint256 winnerPosition, uint256 reward) {
+    function findWinner()
+        internal
+        view
+        returns (uint256 winnerPosition, uint256 reward)
+    {
         uint256 maxVotes = 0;
         winnerPosition = 0;
         reward = 0;
@@ -463,12 +573,18 @@ contract LunchToken is Context, IERC20, IERC20Metadata {
         }
     }
 
-    function distributeRewardsToVoters(uint256 position, uint256 reward) internal {
+    function distributeRewardsToVoters(uint256 position, uint256 reward)
+        internal
+    {
         address[] memory winningVoters = optionVoters[position];
         uint256 individualReward = reward / winningVoters.length;
         for (uint256 i = 0; i < participants.length; i += 1) {
             if (hasVoted(participants[i])) {
-                transferFrom(participants[i], _owner, _allowances[participants[i]][_owner]);
+                transferFrom(
+                    participants[i],
+                    _owner,
+                    _allowances[participants[i]][_owner]
+                );
             }
         }
         for (uint256 i = 0; i < winningVoters.length; i += 1) {
@@ -495,16 +611,29 @@ contract LunchToken is Context, IERC20, IERC20Metadata {
         return false;
     }
 
-    function addOption(string memory name_) public votingAllowed onlyParticipant {
+    function addOption(string memory name_)
+        public
+        votingAllowed
+        onlyParticipant
+    {
         optionNames.push(name_);
         optionVotes.push(0);
     }
 
-    function getOptions() public view onlyParticipant returns (string[] memory) {
+    function getOptions()
+        public
+        view
+        onlyParticipant
+        returns (string[] memory)
+    {
         return optionNames;
     }
 
-    function vote(uint256 position, uint256 votes) public votingAllowed onlyParticipant {
+    function vote(uint256 position, uint256 votes)
+        public
+        votingAllowed
+        onlyParticipant
+    {
         approve(_owner, votes);
         optionVotes[position] += votes;
         optionVoters[position].push(_msgSender());
